@@ -170,6 +170,62 @@
     padding-top: 6px; border-top: 1px solid var(--border);
   }
 
+  /* GROUP CHART */
+  .group-chart-wrap {
+    display: flex; align-items: center; gap: 28px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .donut-wrap {
+    position: relative;
+    width: 140px; height: 140px;
+    flex-shrink: 0;
+  }
+  .chart-col {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 8px; flex-shrink: 0;
+  }
+  .chart-caption {
+    font-size: 11px; color: var(--text3);
+    text-align: center;
+  }
+  .donut-wrap svg { transform: rotate(-90deg); }
+  .donut-center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .donut-center .dc-val {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px; font-weight: 600;
+    color: var(--text); letter-spacing: -0.02em;
+  }
+  .donut-center .dc-lbl {
+    font-size: 10px; color: var(--text3); margin-top: 2px;
+  }
+  .chart-legend {
+    display: flex; flex-direction: column;
+    gap: 10px; flex: 1; min-width: 180px;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .legend-swatch {
+    width: 10px; height: 10px;
+    border-radius: 3px; flex-shrink: 0;
+  }
+  .legend-text {
+    flex: 1; display: flex;
+    justify-content: space-between; align-items: baseline;
+    gap: 8px;
+  }
+  .legend-name { font-size: 12px; color: var(--text); font-weight: 500; }
+  .legend-meta { font-size: 11px; color: var(--text3); white-space: nowrap; }
+
   /* OVERALL PROGRESS */
   .overall-bar-wrap { margin-bottom: 32px; }
   .overall-bar-wrap .bar-label {
@@ -450,6 +506,29 @@
 
   <div class="group-section">
     <div class="group-section-title">Alokasi per Kelompok</div>
+    <div class="group-chart-wrap">
+      <div class="chart-col">
+        <div class="donut-wrap">
+          <svg viewBox="0 0 100 100" width="140" height="140" id="donut-svg"></svg>
+          <div class="donut-center">
+            <div class="dc-val" id="donut-center-val">Rp 0</div>
+            <div class="dc-lbl">total target</div>
+          </div>
+        </div>
+        <div class="chart-caption">Alokasi target</div>
+      </div>
+      <div class="chart-legend" id="chart-legend"></div>
+      <div class="chart-col">
+        <div class="donut-wrap">
+          <svg viewBox="0 0 100 100" width="140" height="140" id="progress-donut-svg"></svg>
+          <div class="donut-center">
+            <div class="dc-val" id="progress-center-val">0%</div>
+            <div class="dc-lbl" id="progress-center-sub">tercapai</div>
+          </div>
+        </div>
+        <div class="chart-caption">Progress keseluruhan</div>
+      </div>
+    </div>
     <div class="group-grid" id="group-grid"></div>
   </div>
 
@@ -821,8 +900,78 @@ function renderGroups() {
   document.getElementById('group-grid').innerHTML = html;
 }
 
+function renderGroupChart() {
+  const totalTarget = goals.reduce((a,g)=>a+g.target,0);
+  const totalCurrent = goals.reduce((a,g)=>a+g.current,0);
+  const groupNames = [...new Set(goals.map(g=>g.group || 'Lainnya'))];
+  groupNames.sort((a,b) => {
+    const ia = GROUP_ORDER.indexOf(a);
+    const ib = GROUP_ORDER.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+
+  const r = 40;
+  const circumference = 2 * Math.PI * r;
+  let offset = 0;
+  let svgHtml = `<circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--bg3)" stroke-width="14"/>`;
+  let legendHtml = '';
+
+  if (totalTarget > 0) {
+    groupNames.forEach(name => {
+      const groupGoals = goals.filter(g => (g.group || 'Lainnya') === name);
+      const gTarget = groupGoals.reduce((a,g)=>a+g.target,0);
+      const allocPct = gTarget / totalTarget;
+      const dash = allocPct * circumference;
+      const gap = circumference - dash;
+      const hex = groupColor(name);
+
+      svgHtml += `<circle cx="50" cy="50" r="${r}" fill="none" stroke="${hex}" stroke-width="14"
+        stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${-offset}" stroke-linecap="butt"/>`;
+      offset += dash;
+
+      legendHtml += `<div class="legend-item">
+        <span class="legend-swatch" style="background:${hex}"></span>
+        <div class="legend-text">
+          <span class="legend-name">${name}</span>
+          <span class="legend-meta">${Math.round(allocPct*100)}% · Rp ${fmtShort(gTarget)}</span>
+        </div>
+      </div>`;
+    });
+  } else {
+    legendHtml = `<div class="legend-item"><span class="legend-meta">Belum ada target. Tambah goal untuk melihat alokasi.</span></div>`;
+  }
+
+  document.getElementById('donut-svg').innerHTML = svgHtml;
+  document.getElementById('chart-legend').innerHTML = legendHtml;
+  document.getElementById('donut-center-val').textContent = 'Rp ' + fmtShort(totalTarget);
+}
+
+function renderProgressDonut() {
+  const totalTarget = goals.reduce((a,g)=>a+g.target,0);
+  const totalCurrent = goals.reduce((a,g)=>a+g.current,0);
+  const r = 40;
+  const circumference = 2 * Math.PI * r;
+  const pctVal = totalTarget > 0 ? Math.min(100, totalCurrent/totalTarget*100) : 0;
+  const dash = (pctVal/100) * circumference;
+  const gap = circumference - dash;
+
+  const svgHtml = `
+    <circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--bg3)" stroke-width="14"/>
+    <circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--blue)" stroke-width="14"
+      stroke-dasharray="${dash} ${gap}" stroke-linecap="butt"/>
+  `;
+  document.getElementById('progress-donut-svg').innerHTML = svgHtml;
+  document.getElementById('progress-center-val').textContent = Math.round(pctVal) + '%';
+  document.getElementById('progress-center-sub').textContent = 'dari Rp ' + fmtShort(totalTarget);
+}
+
 function render() {
   renderSummary();
+  renderGroupChart();
+  renderProgressDonut();
   renderGroups();
   renderRoadmap();
 }
