@@ -113,6 +113,63 @@
   }
   .summary-cell .lbl { font-size: 11px; color: var(--text3); margin-top: 4px; }
 
+  /* GROUP DASHBOARD */
+  .group-section { margin-bottom: 32px; }
+  .group-section-title {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text3); margin-bottom: 12px;
+  }
+  .group-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+  }
+  .group-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .group-card-top {
+    display: flex; justify-content: space-between;
+    align-items: baseline; margin-bottom: 8px;
+  }
+  .group-card-name {
+    font-size: 12px; font-weight: 600;
+    color: var(--text);
+  }
+  .group-card-alloc {
+    font-size: 11px; color: var(--text3);
+  }
+  .group-card-nums {
+    display: flex; justify-content: space-between;
+    align-items: baseline; margin-bottom: 6px;
+  }
+  .group-card-cur {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px; font-weight: 600;
+    color: var(--text); letter-spacing: -0.02em;
+  }
+  .group-card-tgt {
+    font-size: 11px; color: var(--text3);
+  }
+  .group-card-bar-track {
+    height: 5px; background: var(--bg3);
+    border-radius: 99px; overflow: hidden; margin-bottom: 4px;
+  }
+  .group-card-bar-fill {
+    height: 100%; border-radius: 99px;
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+  }
+  .group-card-pct {
+    font-size: 10px; color: var(--text3); text-align: right;
+  }
+  .group-card-count {
+    font-size: 10px; color: var(--text3); margin-top: 6px;
+    padding-top: 6px; border-top: 1px solid var(--border);
+  }
+
   /* OVERALL PROGRESS */
   .overall-bar-wrap { margin-bottom: 32px; }
   .overall-bar-wrap .bar-label {
@@ -391,6 +448,11 @@
     <div class="summary-cell"><div class="val" id="s-tgt">Rp 0</div><div class="lbl">Total target</div></div>
   </div>
 
+  <div class="group-section">
+    <div class="group-section-title">Alokasi per Kelompok</div>
+    <div class="group-grid" id="group-grid"></div>
+  </div>
+
   <div class="overall-bar-wrap">
     <div class="bar-label">
       <span>Progress keseluruhan</span>
@@ -456,6 +518,10 @@
       </div>
     </div>
     <div class="field">
+      <label>Kelompok</label>
+      <input type="text" id="eg-group" list="group-suggestions">
+    </div>
+    <div class="field">
       <label>Catatan (opsional)</label>
       <input type="text" id="eg-note" placeholder="Contoh: Next step, info tambahan">
     </div>
@@ -506,6 +572,17 @@
       </div>
     </div>
     <div class="field">
+      <label>Kelompok</label>
+      <input type="text" id="ag-group" list="group-suggestions" placeholder="Infrastruktur / Bisnis / Proteksi / Life Goals">
+      <div class="hint">Bisa pilih kelompok yang sudah ada atau ketik nama baru</div>
+    </div>
+    <datalist id="group-suggestions">
+      <option value="Infrastruktur">
+      <option value="Bisnis">
+      <option value="Proteksi">
+      <option value="Life Goals">
+    </datalist>
+    <div class="field">
       <label>Catatan (opsional)</label>
       <input type="text" id="ag-note" placeholder="Info tambahan, next step, dll">
     </div>
@@ -532,18 +609,27 @@ const COLORS = [
 ];
 
 const DEFAULT_GOALS = [
-  { id:'benji',   tier:1, name:'Kandang Benji baru',   cat:'Hewan',    icon:'🐕', target:4000000,   current:0, color:'teal',   note:'Next: Sekolah Benji' },
-  { id:'kulit',   tier:1, name:'Berobat kulit',         cat:'Kesehatan',icon:'🏥', target:500000,    current:0, color:'coral',  note:'Kutil di jari' },
-  { id:'outfit',  tier:1, name:'Outfit',                cat:'Kebutuhan',icon:'👔', target:1500000,   current:0, color:'blue',   note:'Celana panjang 2, pendek 1, jaket, kemeja meeting' },
-  { id:'kerja',   tier:1, name:'Setup kerja',           cat:'Kebutuhan',icon:'💻', target:5000000,   current:0, color:'purple', note:'Kursi, keyboard, monitor, lemari' },
-  { id:'kopi',    tier:2, name:'Investasi kopi',        cat:'Bisnis',   icon:'☕', target:2000000,   current:0, color:'amber',  note:'Next: Modal ekspor' },
-  { id:'bali',    tier:2, name:'Ganti modal Bali',      cat:'Hutang',   icon:'🔄', target:10700000,  current:0, color:'coral',  note:'Hutang ke Mamah' },
-  { id:'ekspor',  tier:2, name:'Modal ekspor',          cat:'Bisnis',   icon:'🚢', target:5000000,   current:0, color:'teal',   note:'Setelah investasi kopi selesai' },
-  { id:'emas',    tier:3, name:'Modal Emas',            cat:'Investasi',icon:'🥇', target:10000000,  current:0, color:'amber',  note:'Via platform Bibit' },
-  { id:'darurat', tier:3, name:'Dana Darurat 3 Bulan',  cat:'Safety',   icon:'🛡️', target:18000000,  current:0, color:'green',  note:'Prioritas fondasi keuangan' },
-  { id:'nikah',   tier:4, name:'Modal Nikah',           cat:'Life goal',icon:'💍', target:100000000, current:0, color:'purple', note:'Unlock setelah emas + darurat + Bali selesai' },
-  { id:'diving',  tier:4, name:'Diving',                cat:'Lifestyle',icon:'🤿', target:5000000,   current:0, color:'blue',   note:'Next: Bahasa Inggris / IELTS' },
+  { id:'benji',   tier:1, group:'Infrastruktur', name:'Kandang Benji baru',   cat:'Hewan',    icon:'🐕', target:4000000,   current:0, color:'teal',   note:'Next: Sekolah Benji' },
+  { id:'kulit',   tier:1, group:'Infrastruktur', name:'Berobat kulit',         cat:'Kesehatan',icon:'🏥', target:500000,    current:0, color:'coral',  note:'Kutil di jari' },
+  { id:'outfit',  tier:1, group:'Infrastruktur', name:'Outfit',                cat:'Kebutuhan',icon:'👔', target:1500000,   current:0, color:'blue',   note:'Celana panjang 2, pendek 1, jaket, kemeja meeting' },
+  { id:'kerja',   tier:1, group:'Infrastruktur', name:'Setup kerja',           cat:'Kebutuhan',icon:'💻', target:5000000,   current:0, color:'purple', note:'Kursi, keyboard, monitor, lemari' },
+  { id:'kopi',    tier:2, group:'Bisnis',        name:'Investasi kopi',        cat:'Bisnis',   icon:'☕', target:2000000,   current:0, color:'amber',  note:'Next: Modal ekspor' },
+  { id:'bali',    tier:2, group:'Bisnis',        name:'Ganti modal Bali',      cat:'Hutang',   icon:'🔄', target:10700000,  current:0, color:'coral',  note:'Hutang ke Mamah' },
+  { id:'ekspor',  tier:2, group:'Bisnis',        name:'Modal ekspor',          cat:'Bisnis',   icon:'🚢', target:5000000,   current:0, color:'teal',   note:'Setelah investasi kopi selesai' },
+  { id:'emas',    tier:3, group:'Proteksi',      name:'Modal Emas',            cat:'Investasi',icon:'🥇', target:10000000,  current:0, color:'amber',  note:'Via platform Bibit' },
+  { id:'darurat', tier:3, group:'Proteksi',      name:'Dana Darurat 3 Bulan',  cat:'Safety',   icon:'🛡️', target:18000000,  current:0, color:'green',  note:'Prioritas fondasi keuangan' },
+  { id:'nikah',   tier:4, group:'Life Goals',    name:'Modal Nikah',           cat:'Life goal',icon:'💍', target:100000000, current:0, color:'purple', note:'Unlock setelah emas + darurat + Bali selesai' },
+  { id:'diving',  tier:4, group:'Life Goals',    name:'Diving',                cat:'Lifestyle',icon:'🤿', target:5000000,   current:0, color:'blue',   note:'Next: Bahasa Inggris / IELTS' },
 ];
+
+const GROUP_COLORS = {
+  'Infrastruktur': '#4d8ef0',
+  'Bisnis':        '#e8a634',
+  'Proteksi':      '#4caf82',
+  'Life Goals':    '#9b7fe8',
+};
+const GROUP_ORDER = ['Infrastruktur', 'Bisnis', 'Proteksi', 'Life Goals'];
+function groupColor(name) { return GROUP_COLORS[name] || '#8b90a0'; }
 
 const TIER_LABELS = {
   1: 'Tier 1 — Segera',
@@ -692,8 +778,52 @@ function renderRoadmap() {
   container.innerHTML = html;
 }
 
+function renderGroups() {
+  const totalTarget = goals.reduce((a,g)=>a+g.target,0);
+  const groupNames = [...new Set(goals.map(g=>g.group || 'Lainnya'))];
+  // Sort by GROUP_ORDER first, then alphabetically for any custom groups
+  groupNames.sort((a,b) => {
+    const ia = GROUP_ORDER.indexOf(a);
+    const ib = GROUP_ORDER.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+
+  let html = '';
+  groupNames.forEach(name => {
+    const groupGoals = goals.filter(g => (g.group || 'Lainnya') === name);
+    const gTarget = groupGoals.reduce((a,g)=>a+g.target,0);
+    const gCurrent = groupGoals.reduce((a,g)=>a+g.current,0);
+    const gPct = gTarget > 0 ? Math.min(100, Math.round(gCurrent/gTarget*100)) : 0;
+    const alloc = totalTarget > 0 ? Math.round(gTarget/totalTarget*100) : 0;
+    const doneCount = groupGoals.filter(g=>pct(g)>=100).length;
+    const hex = groupColor(name);
+
+    html += `<div class="group-card">
+      <div class="group-card-top">
+        <span class="group-card-name">${name}</span>
+        <span class="group-card-alloc">${alloc}% dari total</span>
+      </div>
+      <div class="group-card-nums">
+        <span class="group-card-cur">Rp ${fmtShort(gCurrent)}</span>
+        <span class="group-card-tgt">dari Rp ${fmtShort(gTarget)}</span>
+      </div>
+      <div class="group-card-bar-track">
+        <div class="group-card-bar-fill" style="width:${gPct}%;background:${hex}"></div>
+      </div>
+      <div class="group-card-pct">${gPct}%</div>
+      <div class="group-card-count">${doneCount}/${groupGoals.length} goals selesai</div>
+    </div>`;
+  });
+
+  document.getElementById('group-grid').innerHTML = html;
+}
+
 function render() {
   renderSummary();
+  renderGroups();
   renderRoadmap();
 }
 
@@ -724,6 +854,7 @@ function openEditModal(id) {
   document.getElementById('eg-icon').value = g.icon;
   document.getElementById('eg-target').value = g.target;
   document.getElementById('eg-tier').value = g.tier;
+  document.getElementById('eg-group').value = g.group || '';
   document.getElementById('eg-note').value = g.note || '';
   editColorSelected = g.color;
   renderColorPicker('eg-colors', editColorSelected, 'edit');
@@ -737,6 +868,7 @@ function saveEdit() {
   g.icon   = document.getElementById('eg-icon').value.trim() || g.icon;
   g.target = parseFloat(document.getElementById('eg-target').value) || g.target;
   g.tier   = parseInt(document.getElementById('eg-tier').value);
+  g.group  = document.getElementById('eg-group').value.trim() || g.group || 'Lainnya';
   g.note   = document.getElementById('eg-note').value.trim();
   g.color  = editColorSelected;
   save(); render();
@@ -757,6 +889,7 @@ function openAddModal(defaultTier) {
   document.getElementById('ag-icon').value = '🎯';
   document.getElementById('ag-target').value = '';
   document.getElementById('ag-tier').value = defaultTier || 1;
+  document.getElementById('ag-group').value = '';
   document.getElementById('ag-note').value = '';
   addColorSelected = 'blue';
   renderColorPicker('ag-colors', addColorSelected, 'add');
@@ -769,6 +902,7 @@ function saveAdd() {
   const newGoal = {
     id: 'g_' + Date.now(),
     tier: parseInt(document.getElementById('ag-tier').value),
+    group: document.getElementById('ag-group').value.trim() || 'Lainnya',
     name,
     cat:    document.getElementById('ag-cat').value.trim() || 'Umum',
     icon:   document.getElementById('ag-icon').value.trim() || '🎯',
